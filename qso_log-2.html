@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>QSO Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #f5f0e8;
+    --panel: #ede8dc;
+    --border: #c8b89a;
+    --accent: #1a1a1a;
+    --accent2: #2c2c2c;
+    --dim: #8B6914;
+    --text: #1a1a1a;
+    --muted: #5a4a2a;
+    --red: #cc2200;
+    --amber: #8B4500;
+    --input-bg: #ffffff;
+    --glow: none;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    background: linear-gradient(180deg, #ddd5c0, var(--bg));
+    border-bottom: 2px solid #8B6914;
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 3px;
+  }
+
+  header .subtitle {
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .gps-box {
+    text-align: right;
+    cursor: pointer;
+  }
+
+  .grid-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #1a1a1a;
+    letter-spacing: 2px;
+  }
+
+  .gps-status {
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .gps-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin-right: 4px;
+    vertical-align: middle;
+    animation: none;
+  }
+  .gps-dot.active { background: #2a7a2a; animation: blink 1s infinite; }
+  .gps-dot.error { background: var(--red); }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: #ddd5c0;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* FORM */
+  .form-section {
+    padding: 14px 14px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: #6b5010;
+    margin-bottom: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .field-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: flex-end;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .field label {
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"], select, textarea {
+    background: var(--input-bg);
+    border: 1px solid var(--dim);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.05rem;
+    padding: 9px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  }
+
+  select option {
+    background: var(--bg);
+  }
+
+  textarea {
+    resize: none;
+    height: 60px;
+    font-size: 0.85rem;
+    text-transform: none;
+  }
+
+  /* CALL LOOKUP */
+  .call-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+
+  .call-row .field { flex: 2; }
+
+  .lookup-btn {
+    background: #8B6914;
+    border: 1px solid #5a4a00;
+    color: #ffffff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 38px;
+    transition: all 0.2s;
+  }
+  .lookup-btn:active { background: #333; color: #fff; }
+
+  .callsign-name {
+    font-size: 0.65rem;
+    color: var(--amber);
+    margin-top: 3px;
+    letter-spacing: 1px;
+    min-height: 14px;
+    padding-left: 2px;
+  }
+
+  /* RST */
+  .rst-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* MODE SELECTOR */
+  .mode-selector {
+    display: flex;
+    gap: 6px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 9px 4px;
+    background: var(--input-bg);
+    border: 1px solid var(--dim);
+    color: var(--muted);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  /* DISTANCE */
+  .km-display {
+    background: var(--input-bg);
+    border: 1px solid var(--dim);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 1rem;
+    color: #8B4500;
+    letter-spacing: 1px;
+    font-weight: 700;
+    height: 38px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* SAVE BUTTON */
+  .save-btn {
+    margin: 14px;
+    width: calc(100% - 28px);
+    padding: 14px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-shadow: var(--glow);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+  }
+  .save-btn:active {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* LOG LIST */
+  .log-header {
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-count {
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .clear-btn {
+    background: none;
+    border: 1px solid #441111;
+    color: #884444;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+
+  .export-btn {
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+
+  .qso-item {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .qso-item:active { background: rgba(0,0,0,0.06); }
+
+  .qso-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .qso-call {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .qso-mode {
+    font-size: 0.6rem;
+    background: var(--dim);
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  .qso-meta {
+    font-size: 0.6rem;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .qso-meta span { color: var(--text); }
+
+  .qso-name {
+    font-size: 0.65rem;
+    color: var(--amber);
+    margin-top: 2px;
+  }
+
+  .qso-note {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 3px;
+    font-style: italic;
+  }
+
+  .delete-qso {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    background: none;
+    border: none;
+    color: #553333;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .empty-log {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+  }
+
+  .datetime-row {
+    font-size: 0.5rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #ffffff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Freq field */
+  input[type="number"] {
+    background: var(--input-bg);
+    border: 1px solid var(--dim);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 8px 10px;
+    border-radius: 4px;
+    outline: none;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+  input[type="number"]:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>QSO LOG</h1>
+    <div class="subtitle">AMATEUR RADIO FIELD LOG</div>
+  </div>
+  <div class="gps-box" onclick="getGPS()">
+    <div class="grid-display" id="myGrid">------</div>
+    <div class="gps-status"><span class="gps-dot" id="gpsDot"></span><span id="gpsText">TAP GPS</span></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('new')">&#9658; NUOVO QSO</button>
+  <button class="tab-btn" onclick="showTab('log')">&#9776; LOG (<span id="logCount">0</span>)</button>
+  <button class="tab-btn" onclick="showTab('cfg')">&#9881; CFG</button>
+</div>
+
+<!-- SESSION BAR -->
+<div id="sessionBar" style="background:#e8dfc8;border-bottom:2px solid #c8b89a;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+  <span style="font-size:0.55rem;letter-spacing:2px;color:#6b5010;font-weight:700;white-space:nowrap;">LOG:</span>
+  <select id="sessionSelect" onchange="switchSession()" style="flex:1;font-size:0.8rem;padding:5px 8px;background:#fff;border:1px solid #8B6914;color:#1a1a1a;font-family:'Share Tech Mono',monospace;border-radius:4px;outline:none;"></select>
+  <button onclick="newSession()" style="background:#8B6914;border:none;color:#fff;font-family:'Orbitron',monospace;font-size:0.5rem;padding:6px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;letter-spacing:1px;">+NEW</button>
+  <button onclick="renameSession()" style="background:none;border:1px solid #c8b89a;color:#5a4a2a;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:6px 9px;border-radius:4px;cursor:pointer;">&#9998;</button>
+  <button onclick="deleteSession()" style="background:none;border:1px solid #cc6644;color:#cc4422;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:6px 9px;border-radius:4px;cursor:pointer;">&#10005;</button>
+</div>
+
+<!-- NEW QSO TAB -->
+<div id="tab-new" class="tab-content active">
+
+  <div class="form-section">
+    <div class="section-label">&#9670; DATA / ORA UTC</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data</label>
+        <input type="text" id="qsoDate" placeholder="DD/MM/YYYY">
+      </div>
+      <div class="field">
+        <label>Ora UTC</label>
+        <input type="text" id="qsoTime" placeholder="HH:MM">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; CORRISPONDENTE</div>
+    <div class="call-row">
+      <div class="field">
+        <label>Nominativo</label>
+        <input type="text" id="callSign" placeholder="IZ0XXX" oninput="this.value=this.value.toUpperCase()" onblur="autoLookup()">
+      </div>
+      <button class="lookup-btn" onclick="lookupCall()">QRZ&#9654;</button>
+    </div>
+    <div class="callsign-name" id="opName">&#9135;</div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; RAPPORTO RST</div>
+    <div class="rst-grid">
+      <div class="field">
+        <label>RST Inviato (TX)</label>
+        <input type="text" id="rstTx" value="59" maxlength="3" placeholder="59">
+      </div>
+      <div class="field">
+        <label>RST Ricevuto (RX)</label>
+        <input type="text" id="rstRx" value="59" maxlength="3" placeholder="59">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; MODO</div>
+    <div class="mode-selector">
+      <div class="mode-btn active" onclick="setMode(this,'FM')">FM</div>
+      <div class="mode-btn" onclick="setMode(this,'SSB')">SSB</div>
+      <div class="mode-btn" onclick="setMode(this,'CW')">CW</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; FREQUENZA (MHz)</div>
+    <div class="field">
+      <input type="number" id="qsoFreq" placeholder="144.300" step="0.001">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; LOCATORE & DISTANZA</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Grid Corrispondente</label>
+        <input type="text" id="dxGrid" placeholder="JN62AB" maxlength="6" oninput="this.value=this.value.toUpperCase(); calcDist()">
+      </div>
+      <div class="field" style="max-width:100px">
+        <label>Distanza</label>
+        <div class="km-display" id="kmDisplay">— km</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-label">&#9670; NOTE</div>
+    <textarea id="qsoNote" placeholder="Antenna, condizioni, QTH, ecc..."></textarea>
+  </div>
+
+  <button class="save-btn" onclick="saveQSO()">&#9660; SALVA QSO &#9660;</button>
+</div>
+
+<!-- LOG TAB -->
+<div id="tab-log" class="tab-content">
+  <div class="log-header">
+    <div class="log-count" id="logStats">0 QSO registrati</div>
+    <div style="display:flex;gap:6px">
+      <button class="export-btn" onclick="exportADIF()">ADIF</button>
+      <button class="export-btn" onclick="exportCSV()">CSV</button>
+      <button class="clear-btn" onclick="clearLog()">RESET</button>
+    </div>
+  </div>
+  <div id="logList"></div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div id="tab-cfg" class="tab-content">
+  <div class="form-section">
+    <div class="section-label">&#9670; HAMQTH CALLBOOK</div>
+    <div class="field" style="margin-bottom:8px">
+      <label>Username HamQTH</label>
+      <input type="text" id="hqthUser" placeholder="tuo_nominativo" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div class="field" style="margin-bottom:8px">
+      <label>Password HamQTH</label>
+      <input type="password" id="hqthPass" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="save-btn" style="margin:8px 0;width:100%" onclick="saveHamQTH()">&#9660; SALVA CREDENZIALI</button>
+    <div id="hqthStatus" style="font-size:0.65rem;color:#8B4500;letter-spacing:1px;margin-top:6px;min-height:16px;padding-left:2px;"></div>
+    <div style="font-size:0.55rem;color:#8a7a5a;margin-top:10px;line-height:1.6;letter-spacing:0.5px;">
+      Registrazione gratuita su <strong>hamqth.com</strong><br>
+      Le credenziali sono salvate solo su questo dispositivo.<br>
+      Il lookup avviene automaticamente inserendo il nominativo.
+    </div>
+  </div>
+
+  <div class="form-section" style="margin-top:4px">
+    <div class="section-label">&#9670; NOMINATIVO STAZIONE</div>
+    <div class="field" style="margin-bottom:8px">
+      <label>Il mio Call</label>
+      <input type="text" id="myCall" placeholder="IK2GP" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button class="save-btn" style="margin:8px 0;width:100%" onclick="saveMyCall()">&#9660; SALVA</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let myGridSquare = '';
+let selectedMode = 'FM';
+let currentSession = 'Default';
+
+function getSessions() { return JSON.parse(localStorage.getItem('qsoSessions') || '{}'); }
+function saveSessions(s) { localStorage.setItem('qsoSessions', JSON.stringify(s)); }
+function getLog() { return getSessions()[currentSession] || []; }
+function saveLog(log) { const s = getSessions(); s[currentSession] = log; saveSessions(s); }
+
+// ===== INIT =====
+window.onload = () => {
+  // Migrate old single log
+  const oldLog = localStorage.getItem('qsoLog');
+  if (oldLog) {
+    const s = getSessions();
+    if (!s['Default']) s['Default'] = JSON.parse(oldLog);
+    saveSessions(s);
+    localStorage.removeItem('qsoLog');
+  }
+  let s = getSessions();
+  if (Object.keys(s).length === 0) { s['Default'] = []; saveSessions(s); }
+  currentSession = localStorage.getItem('currentSession') || Object.keys(getSessions())[0];
+  if (!getSessions()[currentSession]) currentSession = Object.keys(getSessions())[0];
+
+  renderSessionSelect();
+  setDateTime();
+  updateLogCount();
+  renderLog();
+  // Load HamQTH credentials into settings fields
+  const hu = localStorage.getItem('hqthUser');
+  const hp = localStorage.getItem('hqthPass');
+  if (hu) document.getElementById('hqthUser').value = hu;
+  if (hp) document.getElementById('hqthPass').value = hp;
+  if (hu && hp) document.getElementById('hqthStatus').textContent = '✓ Credenziali caricate';
+  // Load my callsign
+  const mc = localStorage.getItem('myCall');
+  if (mc) document.getElementById('myCall').value = mc;
+
+  const saved = localStorage.getItem('myGrid');
+  if (saved) {
+    myGridSquare = saved;
+    document.getElementById('myGrid').textContent = saved;
+    document.getElementById('gpsText').textContent = 'CACHED';
+  }
+};
+
+// ===== SESSION MANAGEMENT =====
+function renderSessionSelect() {
+  const sel = document.getElementById('sessionSelect');
+  const s = getSessions();
+  sel.innerHTML = Object.keys(s).map(name =>
+    `<option value="${name}" ${name === currentSession ? 'selected' : ''}>${name} (${(s[name]||[]).length} QSO)</option>`
+  ).join('');
+}
+function switchSession() {
+  currentSession = document.getElementById('sessionSelect').value;
+  localStorage.setItem('currentSession', currentSession);
+  updateLogCount();
+  renderLog();
+}
+function newSession() {
+  const name = prompt('Nome del nuovo log (es. Monte Rosa, Contest VHF 2025):');
+  if (!name || !name.trim()) return;
+  const n = name.trim();
+  const s = getSessions();
+  if (s[n]) { alert('Nome gia esistente!'); return; }
+  s[n] = []; saveSessions(s);
+  currentSession = n;
+  localStorage.setItem('currentSession', n);
+  renderSessionSelect(); updateLogCount(); renderLog();
+  showToast('Nuovo log: ' + n);
+}
+function renameSession() {
+  const newName = prompt('Nuovo nome per "' + currentSession + '":', currentSession);
+  if (!newName || !newName.trim() || newName.trim() === currentSession) return;
+  const n = newName.trim();
+  const s = getSessions();
+  if (s[n]) { alert('Nome gia esistente!'); return; }
+  s[n] = s[currentSession]; delete s[currentSession]; saveSessions(s);
+  currentSession = n; localStorage.setItem('currentSession', n);
+  renderSessionSelect(); showToast('Rinominato: ' + n);
+}
+function deleteSession() {
+  const s = getSessions();
+  const keys = Object.keys(s);
+  if (keys.length <= 1) { showToast('Deve esserci almeno un log!'); return; }
+  if (!confirm('Eliminare log "' + currentSession + '" (' + (s[currentSession]||[]).length + ' QSO)?')) return;
+  delete s[currentSession]; saveSessions(s);
+  currentSession = Object.keys(s)[0]; localStorage.setItem('currentSession', currentSession);
+  renderSessionSelect(); updateLogCount(); renderLog(); showToast('Log eliminato');
+}
+
+// ===== DATETIME =====
+function setDateTime() {
+  const now = new Date();
+  const d = now.toISOString().slice(0,10).split('-').reverse().join('/');
+  const t = now.toISOString().slice(11,16);
+  document.getElementById('qsoDate').value = d;
+  document.getElementById('qsoTime').value = t;
+}
+
+// ===== GPS & MAIDENHEAD =====
+function getGPS() {
+  const dot = document.getElementById('gpsDot');
+  const txt = document.getElementById('gpsText');
+  dot.className = 'gps-dot active';
+  txt.textContent = 'FIXING...';
+
+  if (!navigator.geolocation) {
+    dot.className = 'gps-dot error';
+    txt.textContent = 'NO GPS';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const grid = latLonToGrid(pos.coords.latitude, pos.coords.longitude);
+      myGridSquare = grid;
+      document.getElementById('myGrid').textContent = grid;
+      dot.className = 'gps-dot active';
+      txt.textContent = 'GPS OK';
+      localStorage.setItem('myGrid', grid);
+      if (document.getElementById('dxGrid').value.length >= 4) calcDist();
+      showToast('Grid: ' + grid);
+    },
+    err => {
+      dot.className = 'gps-dot error';
+      txt.textContent = 'ERRORE';
+      showToast('GPS non disponibile');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// Maidenhead 6-char
+function latLonToGrid(lat, lon) {
+  lon += 180; lat += 90;
+  const field_lon = Math.floor(lon / 20);
+  const field_lat = Math.floor(lat / 10);
+  const sq_lon = Math.floor((lon % 20) / 2);
+  const sq_lat = Math.floor(lat % 10);
+  const sub_lon = Math.floor(((lon % 20) % 2) * 12);
+  const sub_lat = Math.floor((lat % 1) * 24);
+  return (
+    String.fromCharCode(65 + field_lon) +
+    String.fromCharCode(65 + field_lat) +
+    sq_lon.toString() +
+    sq_lat.toString() +
+    String.fromCharCode(97 + sub_lon) +
+    String.fromCharCode(97 + sub_lat)
+  );
+}
+
+// Grid to lat/lon center
+function gridToLatLon(grid) {
+  grid = grid.toUpperCase();
+  if (grid.length < 4) return null;
+  const lon = (grid.charCodeAt(0) - 65) * 20 - 180 + (parseInt(grid[2]) * 2) + 1;
+  const lat = (grid.charCodeAt(1) - 65) * 10 - 90 + parseInt(grid[3]) + 0.5;
+  if (grid.length >= 6) {
+    const subLon = (grid.charCodeAt(4) - 65) * (2/24);
+    const subLat = (grid.charCodeAt(5) - 65) * (1/24);
+    return {
+      lat: (grid.charCodeAt(1) - 65) * 10 - 90 + parseInt(grid[3]) + subLat + (1/48),
+      lon: (grid.charCodeAt(0) - 65) * 20 - 180 + (parseInt(grid[2]) * 2) + subLon + (1/24)
+    };
+  }
+  return { lat, lon };
+}
+
+// Haversine distance km
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return Math.round(R * 2 * Math.asin(Math.sqrt(a)));
+}
+
+function calcDist() {
+  const dxG = document.getElementById('dxGrid').value.trim();
+  if (!myGridSquare || dxG.length < 4) {
+    document.getElementById('kmDisplay').textContent = '— km';
+    return;
+  }
+  const p1 = gridToLatLon(myGridSquare);
+  const p2 = gridToLatLon(dxG);
+  if (!p1 || !p2) return;
+  const km = haversine(p1.lat, p1.lon, p2.lat, p2.lon);
+  document.getElementById('kmDisplay').textContent = km + ' km';
+}
+
+// ===== MODE =====
+function setMode(el, mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedMode = mode;
+  const rst = mode === 'CW' ? '599' : '59';
+  const tx = document.getElementById('rstTx');
+  const rx = document.getElementById('rstRx');
+  if (tx.value === '59' || tx.value === '599') tx.value = rst;
+  if (rx.value === '59' || rx.value === '599') rx.value = rst;
+}
+
+// ===== HAMQTH LOOKUP =====
+function saveHamQTH() {
+  const u = document.getElementById('hqthUser').value.trim();
+  const p = document.getElementById('hqthPass').value.trim();
+  if (!u || !p) { document.getElementById('hqthStatus').textContent = '⚠ Inserisci utente e password'; return; }
+  localStorage.setItem('hqthUser', u);
+  localStorage.setItem('hqthPass', p);
+  localStorage.removeItem('hqthSession'); // force new session
+  document.getElementById('hqthStatus').textContent = '✓ Credenziali salvate';
+  testHamQTH(u, p);
+}
+
+function saveMyCall() {
+  const c = document.getElementById('myCall').value.trim().toUpperCase();
+  localStorage.setItem('myCall', c);
+  showToast('Call salvato: ' + c);
+}
+
+function testHamQTH(u, p) {
+  document.getElementById('hqthStatus').textContent = '⏳ Test connessione...';
+  getHamQTHSession(u, p).then(sid => {
+    if (sid) document.getElementById('hqthStatus').textContent = '✓ Connessione OK · Sessione attiva';
+    else document.getElementById('hqthStatus').textContent = '✗ Login fallito — controlla le credenziali';
+  });
+}
+
+function getHamQTHSession(u, p) {
+  const cached = localStorage.getItem('hqthSession');
+  const cachedTime = parseInt(localStorage.getItem('hqthSessionTime') || '0');
+  if (cached && (Date.now() - cachedTime) < 50 * 60 * 1000) return Promise.resolve(cached);
+  return fetch(`https://www.hamqth.com/xml.php?u=${encodeURIComponent(u)}&p=${encodeURIComponent(p)}`)
+    .then(r => r.text())
+    .then(xml => {
+      const m = xml.match(/<session_id>([^<]+)<\/session_id>/);
+      if (m) {
+        localStorage.setItem('hqthSession', m[1]);
+        localStorage.setItem('hqthSessionTime', Date.now().toString());
+        return m[1];
+      }
+      return null;
+    })
+    .catch(() => null);
+}
+
+function autoLookup() {
+  const call = document.getElementById('callSign').value.trim();
+  if (call.length >= 3) lookupCall();
+}
+
+function lookupCall() {
+  const call = document.getElementById('callSign').value.trim().toUpperCase();
+  if (!call) return;
+  const nameEl = document.getElementById('opName');
+  nameEl.textContent = '⏳ cercando...';
+
+  const u = localStorage.getItem('hqthUser');
+  const p = localStorage.getItem('hqthPass');
+
+  if (u && p) {
+    // Use HamQTH
+    getHamQTHSession(u, p).then(sid => {
+      if (!sid) { fallbackLookup(call); return; }
+      return fetch(`https://www.hamqth.com/xml.php?id=${sid}&callsign=${call}&prg=qso-logger`)
+        .then(r => r.text())
+        .then(xml => {
+          if (xml.includes('<e>')) { fallbackLookup(call); return; }
+          const get = tag => { const m = xml.match(new RegExp(`<${tag}>([^<]*)<\/${tag}>`)); return m ? m[1] : ''; };
+          const nick = get('nick') || get('fname') || '';
+          const name = get('name') || '';
+          const country = get('country') || '';
+          const grid = get('grid') || get('locator') || '';
+          let display = nick || name;
+          if (country) display += (display ? ' · ' : '') + country;
+          if (grid && !document.getElementById('dxGrid').value) {
+            document.getElementById('dxGrid').value = grid.toUpperCase().slice(0,6);
+            calcDist();
+          }
+          nameEl.textContent = display || '(no info HamQTH)';
+        });
+    }).catch(() => fallbackLookup(call));
+  } else {
+    fallbackLookup(call);
+  }
+}
+
+function fallbackLookup(call) {
+  const nameEl = document.getElementById('opName');
+  fetch(`https://api.hamdb.org/v1/${call}/json/qso-logger`)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.hamdb && data.hamdb.callsign) {
+        const info = data.hamdb.callsign;
+        const fname = info.fname || '';
+        const name = info.name || '';
+        const country = info.country || '';
+        const grid = info.grid || '';
+        let display = `${fname} ${name}`.trim();
+        if (country) display += (display ? ' · ' : '') + country;
+        if (grid && !document.getElementById('dxGrid').value) {
+          document.getElementById('dxGrid').value = grid.toUpperCase().slice(0,6);
+          calcDist();
+        }
+        nameEl.textContent = display || '(no info)';
+      } else {
+        nameEl.innerHTML = `<a href="https://www.hamqth.com/search.php?callsign=${call}" target="_blank" style="color:#8B4500;text-decoration:none">&#128269; Cerca su HamQTH &#8599;</a>`;
+      }
+    })
+    .catch(() => {
+      nameEl.innerHTML = `<a href="https://www.hamqth.com/search.php?callsign=${call}" target="_blank" style="color:#8B4500;text-decoration:none">&#128269; Cerca su HamQTH &#8599;</a>`;
+    });
+}
+
+// ===== SAVE QSO =====
+function saveQSO() {
+  const call = document.getElementById('callSign').value.trim().toUpperCase();
+  if (!call) { showToast('Inserisci il nominativo!'); return; }
+
+  const dxG = document.getElementById('dxGrid').value.trim().toUpperCase();
+  let km = null;
+  if (myGridSquare && dxG.length >= 4) {
+    const p1 = gridToLatLon(myGridSquare);
+    const p2 = gridToLatLon(dxG);
+    if (p1 && p2) km = haversine(p1.lat, p1.lon, p2.lat, p2.lon);
+  }
+
+  const qso = {
+    id: Date.now(),
+    date: document.getElementById('qsoDate').value,
+    time: document.getElementById('qsoTime').value,
+    call: call,
+    name: document.getElementById('opName').textContent.replace('⏳ cercando...','').replace('—','').trim(),
+    rstTx: document.getElementById('rstTx').value,
+    rstRx: document.getElementById('rstRx').value,
+    mode: selectedMode,
+    freq: document.getElementById('qsoFreq').value,
+    myGrid: myGridSquare || '------',
+    dxGrid: dxG,
+    km: km,
+    note: document.getElementById('qsoNote').value.trim()
+  };
+
+  const qsoLog = getLog();
+  qsoLog.unshift(qso);
+  saveLog(qsoLog);
+  updateLogCount();
+  renderLog();
+  showToast('QSO salvato: ' + call);
+
+  // Reset form fields
+  document.getElementById('callSign').value = '';
+  document.getElementById('opName').textContent = '—';
+  document.getElementById('rstTx').value = '59';
+  document.getElementById('rstRx').value = '59';
+  document.getElementById('dxGrid').value = '';
+  document.getElementById('kmDisplay').textContent = '— km';
+  document.getElementById('qsoNote').value = '';
+  document.getElementById('qsoFreq').value = '';
+  setDateTime();
+}
+
+// ===== RENDER LOG =====
+function renderLog() {
+  const qsoLog = getLog();
+  const list = document.getElementById('logList');
+  if (qsoLog.length === 0) {
+    list.innerHTML = '<div class="empty-log">&#9634; NESSUN QSO REGISTRATO<br><br>Vai su "NUOVO QSO" per iniziare</div>';
+    return;
+  }
+
+  list.innerHTML = qsoLog.map((q, i) => `
+    <div class="qso-item">
+      <div class="qso-top">
+        <div class="qso-call">${q.call}</div>
+        <div class="qso-mode">${q.mode}</div>
+      </div>
+      ${q.name && q.name !== '—' && !q.name.includes('QRZ') ? `<div class="qso-name">&#9670; ${q.name}</div>` : ''}
+      <div class="qso-meta">
+        <span>${q.date} ${q.time}z</span>
+        ${q.dxGrid ? `<span>&#9632; ${q.dxGrid}</span>` : ''}
+        ${q.km ? `<span style="color:#ffaa00">&#8651; ${q.km} km</span>` : ''}
+        ${q.freq ? `<span>${q.freq} MHz</span>` : ''}
+      </div>
+      <div class="qso-meta" style="margin-top:3px">
+        <span>TX: ${q.rstTx}</span>
+        <span>RX: ${q.rstRx}</span>
+        ${q.myGrid !== '------' ? `<span style="color:#4a7a4a">MY: ${q.myGrid}</span>` : ''}
+      </div>
+      ${q.note ? `<div class="qso-note">"${q.note}"</div>` : ''}
+      <button class="delete-qso" onclick="deleteQSO(${q.id}, event)">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function updateLogCount() {
+  const qsoLog = getLog();
+  document.getElementById('logCount').textContent = qsoLog.length;
+  document.getElementById('logStats').textContent = qsoLog.length + ' QSO  · ' + currentSession;
+  renderSessionSelect();
+}
+
+function deleteQSO(id, e) {
+  e.stopPropagation();
+  saveLog(getLog().filter(q => q.id !== id));
+  updateLogCount();
+  renderLog();
+}
+
+function clearLog() {
+  if (confirm('Cancellare tutti i QSO del log corrente?')) {
+    saveLog([]);
+    updateLogCount();
+    renderLog();
+  }
+}
+
+// ===== TABS =====
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===== EXPORT ADIF =====
+function exportADIF() {
+  const qsoLog = getLog();
+  if (qsoLog.length === 0) { showToast('Nessun QSO da esportare'); return; }
+  let adif = 'QSO Log exported by QSO Logger\n<ADIF_VER:5>3.1.0\n<EOH>\n\n';
+  qsoLog.forEach(q => {
+    const dateParts = q.date.split('/');
+    const adifDate = dateParts[2] + dateParts[1] + dateParts[0];
+    const timeStr = q.time.replace(':','') + '00';
+    adif += `<CALL:${q.call.length}>${q.call} `;
+    adif += `<QSO_DATE:8>${adifDate} `;
+    adif += `<TIME_ON:6>${timeStr} `;
+    adif += `<MODE:${q.mode.length}>${q.mode} `;
+    if (q.freq) adif += `<FREQ:${q.freq.length}>${q.freq} `;
+    adif += `<RST_SENT:${q.rstTx.length}>${q.rstTx} `;
+    adif += `<RST_RCVD:${q.rstRx.length}>${q.rstRx} `;
+    if (q.dxGrid) adif += `<GRIDSQUARE:${q.dxGrid.length}>${q.dxGrid} `;
+    if (q.myGrid && q.myGrid !== '------') adif += `<MY_GRIDSQUARE:${q.myGrid.length}>${q.myGrid} `;
+    if (q.note) adif += `<COMMENT:${q.note.length}>${q.note} `;
+    adif += '<EOR>\n';
+  });
+  downloadFile('qso_log.adi', adif, 'text/plain');
+  showToast('ADIF esportato!');
+}
+
+// ===== EXPORT CSV =====
+function exportCSV() {
+  const qsoLog = getLog();
+  if (qsoLog.length === 0) { showToast('Nessun QSO da esportare'); return; }
+  const headers = ['Data','Ora UTC','Call','Nome','Mode','Freq MHz','RST TX','RST RX','Grid DX','Grid MY','Km','Note'];
+  const rows = qsoLog.map(q => [
+    q.date, q.time, q.call, q.name||'', q.mode, q.freq||'', q.rstTx, q.rstRx, q.dxGrid||'', q.myGrid||'', q.km||'', q.note||''
+  ].map(v => `"${v}"`).join(','));
+  downloadFile('qso_log.csv', [headers.join(','), ...rows].join('\n'), 'text/csv');
+  showToast('CSV esportato!');
+}
+
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
